@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LilyGO 時計自動同期</title>
+  <style>
+    body { font-family: sans-serif; text-align: center; padding-top: 50px; background: #121212; color: #fff; }
+    button { padding: 15px 30px; font-size: 18px; background: #00e676; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
+    #status { margin-top: 20px; color: #aaa; }
+  </style>
+</head>
+<body>
+  <h2>LilyGO Time Sync</h2>
+  <button onclick="syncTime()">時刻を同期する</button>
+  <div id="status">ボタンを押してBLE接続してください</div>
+
+  <script>
+    const SERVICE_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b";
+    const CHARACTERISTIC_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8";
+
+    async function syncTime() {
+      const status = document.getElementById("status");
+      try {
+        status.innerText = "デバイスを探しています...";
+        const device = await navigator.bluetooth.requestDevice({
+          filters: [{ name: 'LilyGO-Clock-Sync' }],
+          optionalServices: [SERVICE_UUID]
+        });
+
+        status.innerText = "接続中...";
+        const server = await device.gatt.connect();
+        const service = await server.getPrimaryService(SERVICE_UUID);
+        const characteristic = await service.getCharacteristic(CHARACTERISTIC_UUID);
+
+        // ボタンを押した瞬間の正確なUnixタイムスタンプ（秒）を取得して送信
+        const nowSec = Math.floor(Date.now() / 1000).toString();
+        const encoder = new TextEncoder();
+        await characteristic.writeValue(encoder.encode(nowSec));
+
+        status.innerText = "同期成功！ (" + nowSec + ")";
+        setTimeout(() => device.gatt.disconnect(), 500);
+      } catch (error) {
+        status.innerText = "エラー: " + error;
+      }
+    }
+  </script>
+</body>
+</html>
