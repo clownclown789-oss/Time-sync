@@ -11,9 +11,15 @@
   </style>
 </head>
 <body>
-  <h2>LilyGO Time Sync</h2>
+  <h2>Time Sync</h2>
   <button onclick="syncTime()">時刻を同期する</button>
-  <div id="status">時計側からBLE接続してください</div>
+  <div id="status">
+    時計側からBLE接続を開始してください<br>
+    （PWRボタンを長押しして BLE Waiting... を表示）<br>
+    <br>
+    「時刻を同期する」を押してからBLE接続して同期すると1秒ほどずれます<br>
+    BLE接続開始してから同期すればほぼ一致します
+  </div>
 
   <script>
     const SERVICE_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b";
