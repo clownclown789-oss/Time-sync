@@ -31,7 +31,8 @@
         const device = await navigator.bluetooth.requestDevice({
           filters: [
             { name: 'LilyGO-Clock-Sync' },
-            { name: 'T-Watch-S3-Clock' }
+            { name: 'T-Watch-S3-Clock' },
+            { name: 'T-Watch-Ultra' }
           ],
           optionalServices: [SERVICE_UUID]
         });
