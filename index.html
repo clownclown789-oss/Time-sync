@@ -43,7 +43,11 @@
         const characteristic = await service.getCharacteristic(CHARACTERISTIC_UUID);
 
         // ボタンを押した瞬間の正確なUnixタイムスタンプ（秒）を取得して送信
-        const nowSec = Math.floor(Date.now() / 1000).toString();
+        // 次の秒の切り替わり（000ms）を待ってから送信する
+        const msUntilNextSec = 1000 - (Date.now() % 1000);
+        await new Promise(r => setTimeout(r, msUntilNextSec));
+        const nowSec = Math.round(Date.now() / 1000).toString();
+        
         const encoder = new TextEncoder();
         await characteristic.writeValue(encoder.encode(nowSec));
 
