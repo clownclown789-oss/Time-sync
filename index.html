@@ -14,14 +14,15 @@
   <h2>Time Sync</h2>
   <button onclick="syncTime()">時刻を同期する</button>
   <div id="status">
-    時計側からBLE接続を開始してください<br>
+    時計側からBLE接続を開始<br>
     <br>
-    次の秒の切り替わりを待ってから送信します
+    次の秒の切り替わりに合わせて送信
   </div>
 
   <script>
     const SERVICE_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b";
     const CHARACTERISTIC_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8";
+    const BLE_LATENCY_MS = 80; // BLE書き込み〜時計反映までの遅延補正(ms)
 
     async function syncTime() {
       const status = document.getElementById("status");
@@ -41,16 +42,24 @@
         const service = await server.getPrimaryService(SERVICE_UUID);
         const characteristic = await service.getCharacteristic(CHARACTERISTIC_UUID);
 
-        // ボタンを押した瞬間の正確なUnixタイムスタンプ（秒）を取得して送信
-        // 次の秒の切り替わり（000ms）を待ってから送信する
-        const msUntilNextSec = 1000 - (Date.now() % 1000);
-        await new Promise(r => setTimeout(r, msUntilNextSec));
-        const nowSec = Math.round(Date.now() / 1000).toString();
-        
-        const encoder = new TextEncoder();
-        await characteristic.writeValue(encoder.encode(nowSec));
+        // 目標とする次の整数秒を先に確定（残り時間が80ms未満なら2秒先を目標にする）
+        const now = Date.now();
+        const remainder = now % 1000;
+        const targetSec = Math.floor(now / 1000) + (remainder > (1000 - BLE_LATENCY_MS) ? 2 : 1);
+        const sendAtMs = targetSec * 1000 - BLE_LATENCY_MS;
 
-        status.innerText = "同期成功！ (" + nowSec + ")";
+        const waitMs = sendAtMs - Date.now();
+        if (waitMs > 0) {
+          await new Promise(r => setTimeout(r, waitMs));
+        }
+        // setTimeoutが数ms早く起きた場合の端数待ち
+        while (Date.now() < sendAtMs) {}
+
+        const payload = targetSec.toString();
+        const encoder = new TextEncoder();
+        await characteristic.writeValue(encoder.encode(payload));
+
+        status.innerText = "同期成功！ (" + payload + ")";
         setTimeout(() => device.gatt.disconnect(), 500);
       } catch (error) {
         status.innerText = "エラー: " + error;
